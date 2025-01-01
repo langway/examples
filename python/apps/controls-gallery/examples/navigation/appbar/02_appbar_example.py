@@ -1,6 +1,7 @@
 import flet as ft
 
-def example2():
+name = "AppBar Example2"
+def example():
    pagelet = ft.Pagelet(
         appbar = ft.AppBar(
              title=ft.Text("TITLE", color=ft.Colors.WHITE),

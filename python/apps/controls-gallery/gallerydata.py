@@ -5,6 +5,7 @@ from os.path import isfile, join
 from pathlib import Path
 
 import flet as ft
+import inspect
 
 
 class GridItem:
@@ -21,7 +22,7 @@ class ExampleItem:
         self.file_name = None
         self.order = None
         self.example = None
-        # self.source_code = None
+        self.source_code = None
 
 
 class ControlGroup:
@@ -143,7 +144,7 @@ class GalleryData:
             f
             for f in os.listdir(file_path)
             if not isfile(f)
-            and f not in ["index.py", "images", "__pycache__", ".venv", ".git"]
+               and f not in ["index.py", "images", "__pycache__", ".venv", ".git"]
         ]
         return control_dirs
 
@@ -160,7 +161,7 @@ class GalleryData:
                 grid_item = GridItem(control_dir)
 
                 for file in self.list_example_files(
-                    control_group_dir.name, control_dir
+                        control_group_dir.name, control_dir
                 ):
                     file_name = os.path.join(control_group_dir.name, control_dir, file)
                     module_name = file_name.replace("/", ".").replace(".py", "")
@@ -175,28 +176,43 @@ class GalleryData:
                         spec = importlib.util.spec_from_file_location(
                             module_name, file_path
                         )
-                        module = importlib.util.module_from_spec(spec)
-                        sys.modules[module_name] = module
-                        spec.loader.exec_module(module)
-                        print(f"{module_name!r} has been imported")
-                        if file == "index.py":
-                            grid_item.name = module.name
-                            grid_item.description = module.description
-                        else:
-                            example_item = ExampleItem()
-                            example_item.example = module.example
+                        module = None
+                        try:
+                            module = importlib.util.module_from_spec(spec)
+                        except Exception as e:
+                            a = 1
 
-                            example_item.file_name = (
-                                module_name.replace(".", "/") + ".py"
-                            )
-                            example_item.name = module.name
-                            example_item.order = file[
-                                :2
-                            ]  # first 2 characters of example file name (e.g. '01')
-                            grid_item.examples.append(example_item)
+                        if module:
+                            sys.modules[module_name] = module
+                            spec.loader.exec_module(module)
+                            print(f"{module_name!r} has been imported")
+                            if file == "index.py":
+                                grid_item.name = module.name
+                                grid_item.description = module.description
+                            else:
+                                example_item = ExampleItem()
+                                example_item.example = module.example
+
+                                example_item.file_name = (
+                                        module_name.replace(".", "/") + ".py"
+                                )
+                                example_item.name = module.name
+                                example_item.order = file[
+                                                     :2
+                                                     ]  # first 2 characters of example file name (e.g. '01')
+
+                                # example_item.source_code=inspect.getsource(module.example)
+                                example_item.source_code = read_source_code(file_path)
+                                grid_item.examples.append(example_item)
                 grid_item.examples.sort(key=lambda x: x.order)
                 control_group_dir.grid_items.append(grid_item)
             try:
                 control_group_dir.grid_items.sort(key=lambda x: x.name)
             except:
                 print(control_group_dir.name, control_group_dir.grid_items)
+
+
+def read_source_code(file_path):
+    with open(file_path, "r", encoding='utf-8') as f:
+        source = f.read()
+        return source
